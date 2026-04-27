@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Flohmarkt Finder</string>
+    <string name="search_hint">Suche nach Flohmärkten…</string>
+    <string name="filter_all">Alles</string>
+    <string name="filter_flohmarkt">Flohmarkt</string>
+    <string name="filter_haushaltsaufloesung">Haushaltsaufloesung</string>
+    <string name="filter_troedelmarkt">Troedelmarkt</string>
+    <string name="filter_today">Heute</string>
+    <string name="filter_this_week">Diese Woche</string>
+    <string name="filter_this_month">Diesen Monat</string>
+    <string name="favorites">Favoriten</string>
+    <string name="no_results">Keine Eintraege gefunden</string>
+    <string name="error_network">Netzwerkfehler. Bitte Verbindung pruefen.</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="open_link">Anzeige oeffnen</string>
+    <string name="add_favorite">Zu Favoriten hinzufuegen</string>
+    <string name="remove_favorite">Aus Favoriten entfernen</string>
+    <string name="loading">Lade Eintraege…</string>
+    <string name="pull_to_refresh">Zum Aktualisieren ziehen</string>
+    <string name="location_hint">Ort eingeben (z.B. Berlin)</string>
+    <string name="radius_hint">Umkreis (km)</string>
+    <string name="detail_title">Details</string>
+    <string name="back">Zurueck</string>
+    <string name="category">Kategorie</string>
+    <string name="date_time">Datum und Uhrzeit</string>
+    <string name="address">Adresse</string>
+    <string name="description">Beschreibung</string>
+    <string name="no_favorites">Noch keine Favoriten gespeichert</string>
+    <string name="app_description">Flohmärkte und Haushaltsauflösungen in Ihrer Nähe</string>
+</resources>
