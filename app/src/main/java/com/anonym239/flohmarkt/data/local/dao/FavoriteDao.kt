@@ -13,6 +13,9 @@ interface FavoriteDao {
     @Query("SELECT * FROM favorites ORDER BY title ASC")
     fun getAllFavorites(): Flow<List<FavoriteEntity>>
 
+    @Query("SELECT id FROM favorites")
+    suspend fun getAllFavoriteIds(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorite(favorite: FavoriteEntity)
 
@@ -21,7 +24,4 @@ interface FavoriteDao {
 
     @Query("SELECT COUNT(*) FROM favorites WHERE id = :id")
     suspend fun isFavorite(id: String): Int
-
-    @Query("SELECT * FROM favorites WHERE id = :id LIMIT 1")
-    suspend fun getFavoriteById(id: String): FavoriteEntity?
 }

@@ -6,6 +6,7 @@ import com.anonym239.flohmarkt.domain.model.Category
 import com.anonym239.flohmarkt.domain.model.DateFilter
 import com.anonym239.flohmarkt.domain.model.MarketEntry
 import com.anonym239.flohmarkt.domain.repository.MarketRepository
+import com.anonym239.flohmarkt.util.LocationHelper
 import com.anonym239.flohmarkt.util.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -16,14 +17,17 @@ import javax.inject.Singleton
 @Singleton
 class MarketRepositoryImpl @Inject constructor(
     private val remoteDataSource: RemoteDataSource,
-    private val favoriteDao: FavoriteDao
+    private val favoriteDao: FavoriteDao,
+    private val locationHelper: LocationHelper
 ) : MarketRepository {
 
     override suspend fun searchMarkets(
         query: String,
         location: String,
         category: Category,
-        dateFilter: DateFilter
+        dateFilter: DateFilter,
+        userLat: Double?,
+        userLon: Double?
     ): Result<List<MarketEntry>> {
         return try {
             val dtos = remoteDataSource.searchMarkets(query, location, category, dateFilter)
@@ -33,9 +37,18 @@ class MarketRepositoryImpl @Inject constructor(
                 emptySet()
             }
             val entries = dtos.map { dto ->
-                dto.toDomain(isFavorite = favoriteIds.contains(dto.id))
+                dto.toDomain(
+                    isFavorite = favoriteIds.contains(dto.id),
+                    userLat = userLat,
+                    userLon = userLon,
+                    locationHelper = locationHelper
+                )
             }
-            Result.Success(entries)
+            // Sortiere nach Entfernung wenn GPS verfügbar
+            val sorted = if (userLat != null && userLon != null) {
+                entries.sortedBy { it.distanceKm ?: Double.MAX_VALUE }
+            } else entries
+            Result.Success(sorted)
         } catch (e: Exception) {
             Result.Error(
                 message = buildUserFriendlyError(e),
@@ -47,9 +60,7 @@ class MarketRepositoryImpl @Inject constructor(
     override fun getFavorites(): Flow<List<MarketEntry>> {
         return favoriteDao.getAllFavorites()
             .map { entities -> entities.map { it.toDomain() } }
-            .catch { e ->
-                emit(emptyList())
-            }
+            .catch { emit(emptyList()) }
     }
 
     override suspend fun addFavorite(entry: MarketEntry): Result<Unit> {
@@ -86,11 +97,7 @@ class MarketRepositoryImpl @Inject constructor(
 
     private suspend fun getFavoriteIds(): Set<String> {
         return try {
-            // Lese alle Favoriten-IDs aus der Datenbank
-            val ids = mutableSetOf<String>()
-            // Wir nutzen eine einmalige Abfrage über den DAO
-            favoriteDao.getAllFavorites()
-            ids
+            favoriteDao.getAllFavoriteIds().toSet()
         } catch (e: Exception) {
             emptySet()
         }
@@ -102,17 +109,19 @@ class MarketRepositoryImpl @Inject constructor(
             message.contains("Unable to resolve host") ||
             message.contains("No address associated") ||
             message.contains("Network is unreachable") ->
-                "Keine Internetverbindung. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+                "Keine Internetverbindung. Bitte prüfen Sie Ihre Verbindung."
             message.contains("timeout", ignoreCase = true) ||
             message.contains("timed out", ignoreCase = true) ->
-                "Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es erneut."
+                "Die Anfrage hat zu lange gedauert. Bitte erneut versuchen."
             message.contains("401") || message.contains("403") ->
-                "API-Schlüssel ungültig oder abgelaufen. Bitte prüfen Sie den API-Key."
+                "API-Schlüssel ungültig. Bitte prüfen Sie den API-Key."
+            message.contains("402") ->
+                "Kein Guthaben auf dem OpenRouter-Konto."
             message.contains("429") ->
-                "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
+                "Zu viele Anfragen. Bitte kurz warten und erneut versuchen."
             message.contains("500") || message.contains("502") || message.contains("503") ->
-                "Der Server ist momentan nicht erreichbar. Bitte versuchen Sie es später erneut."
-            else -> "Ein Fehler ist aufgetreten: $message"
+                "Server momentan nicht erreichbar. Bitte später versuchen."
+            else -> message
         }
     }
 }

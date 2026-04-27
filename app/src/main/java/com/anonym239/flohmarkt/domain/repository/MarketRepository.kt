@@ -7,11 +7,14 @@ import com.anonym239.flohmarkt.util.Result
 import kotlinx.coroutines.flow.Flow
 
 interface MarketRepository {
+
     suspend fun searchMarkets(
         query: String,
         location: String,
         category: Category,
-        dateFilter: DateFilter
+        dateFilter: DateFilter,
+        userLat: Double? = null,
+        userLon: Double? = null
     ): Result<List<MarketEntry>>
 
     fun getFavorites(): Flow<List<MarketEntry>>

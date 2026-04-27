@@ -1,12 +1,16 @@
 package com.anonym239.flohmarkt.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,15 +19,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,10 +43,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.anonym239.flohmarkt.domain.model.Category
 import com.anonym239.flohmarkt.domain.model.MarketEntry
+import com.anonym239.flohmarkt.util.LocationHelper
 
 @Composable
 fun MarketEntryCard(
@@ -50,9 +59,20 @@ fun MarketEntryCard(
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
     onOpenLinkClick: () -> Unit,
+    locationHelper: LocationHelper? = null,
     modifier: Modifier = Modifier
 ) {
     var visible by remember { mutableStateOf(false) }
+    var favoriteAnimating by remember { mutableStateOf(false) }
+    val favoriteScale by animateFloatAsState(
+        targetValue = if (favoriteAnimating) 1.3f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        finishedListener = { favoriteAnimating = false },
+        label = "favoriteScale"
+    )
 
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(animationDelay.toLong())
@@ -61,13 +81,13 @@ fun MarketEntryCard(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(400)) +
+        enter = fadeIn(animationSpec = tween(350)) +
                 slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = EaseOutBack
                     ),
-                    initialOffsetY = { it / 3 }
+                    initialOffsetY = { it / 2 }
                 )
     ) {
         Card(
@@ -75,7 +95,11 @@ fun MarketEntryCard(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 3.dp,
+                pressedElevation = 8.dp
+            ),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
@@ -85,22 +109,38 @@ fun MarketEntryCard(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // Header: Kategorie-Chip + Favoriten-Button
+                // Header: Kategorie-Chip + Entfernung + Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CategoryChip(category = entry.category)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CategoryChip(category = entry.category)
+                        // Entfernungsanzeige
+                        entry.distanceKm?.let { dist ->
+                            val distText = locationHelper?.formatDistance(dist) ?: "${dist.toInt()} km"
+                            DistanceBadge(distanceText = distText)
+                        }
+                    }
                     Row {
                         IconButton(onClick = onOpenLinkClick) {
                             Icon(
                                 imageVector = Icons.Default.OpenInBrowser,
                                 contentDescription = "Anzeige öffnen",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        IconButton(onClick = onFavoriteClick) {
+                        IconButton(
+                            onClick = {
+                                favoriteAnimating = true
+                                onFavoriteClick()
+                            }
+                        ) {
                             Icon(
                                 imageVector = if (entry.isFavorite)
                                     Icons.Default.Bookmark
@@ -113,18 +153,23 @@ fun MarketEntryCard(
                                 tint = if (entry.isFavorite)
                                     MaterialTheme.colorScheme.primary
                                 else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .scale(favoriteScale)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Titel
                 Text(
                     text = entry.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -138,7 +183,26 @@ fun MarketEntryCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Trennlinie
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0f),
+                                    MaterialTheme.colorScheme.outlineVariant,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0f)
+                                )
+                            )
+                        )
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -148,25 +212,26 @@ fun MarketEntryCard(
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = entry.dateTime,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(5.dp))
 
                 // Ort
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -180,6 +245,33 @@ fun MarketEntryCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DistanceBadge(distanceText: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.NearMe,
+            contentDescription = null,
+            modifier = Modifier.size(11.dp),
+            tint = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Text(
+            text = distanceText,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -209,13 +301,15 @@ fun CategoryChip(category: Category, modifier: Modifier = Modifier) {
         label = {
             Text(
                 text = category.displayName,
-                style = MaterialTheme.typography.labelMedium
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
             )
         },
         modifier = modifier,
         colors = SuggestionChipDefaults.suggestionChipColors(
             containerColor = containerColor,
             labelColor = labelColor
-        )
+        ),
+        shape = RoundedCornerShape(20.dp)
     )
 }

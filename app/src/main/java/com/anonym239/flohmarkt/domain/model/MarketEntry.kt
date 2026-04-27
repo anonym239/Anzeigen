@@ -10,7 +10,8 @@ data class MarketEntry(
     val category: Category,
     val url: String,
     val imageUrl: String? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val distanceKm: Double? = null  // Entfernung vom Nutzerstandort in km
 )
 
 enum class Category(val displayName: String) {
