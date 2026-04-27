@@ -59,6 +59,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -76,18 +78,22 @@ jobs:
           tag_name: v${{ github.run_number }}
           name: "Flohmarkt Finder v${{ github.run_number }}"
           body: |
-            ## Flohmarkt Finder APK
+            ## 🛍️ Flohmarkt Finder APK
             
             Automatisch gebaut aus Commit: ${{ github.sha }}
             
-            ### Installation
-            1. APK herunterladen
-            2. Auf dem Android-Gerät öffnen
-            3. Installation aus unbekannten Quellen erlauben
-            4. App installieren
+            ### 📱 Installation
+            1. **APK herunterladen** (unten bei "Assets")
+            2. APK auf das Android-Gerät übertragen (z.B. per USB oder E-Mail)
+            3. Auf dem Gerät: Einstellungen → Sicherheit → "Installation aus unbekannten Quellen" erlauben
+            4. APK antippen und installieren
             
-            ### Hinweis
-            Bitte den OpenRouter API-Key in `Constants.kt` eintragen vor dem Build.
+            ### ✨ Features
+            - Flohmärkte, Haushaltsauflösungen & Trödelmärkte suchen
+            - Ortsbasierte Suche mit Kategorie- und Datumsfilter
+            - Favoriten lokal speichern
+            - Originalanzeigen im Browser öffnen
+            - Material You Design (Android 12+)
           files: ./apk/app-debug.apk
           draft: false
           prerelease: false
