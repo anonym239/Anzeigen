@@ -5,18 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,8 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -74,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.anonym239.flohmarkt.domain.model.Category
 import com.anonym239.flohmarkt.domain.model.DateFilter
-import com.anonym239.flohmarkt.ui.components.ErrorView
 import com.anonym239.flohmarkt.ui.components.LottieLoadingView
 import com.anonym239.flohmarkt.ui.components.MarketEntryCard
 
@@ -148,7 +140,6 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            // GPS-Button
             FloatingActionButton(
                 onClick = {
                     locationPermissionLauncher.launch(
@@ -205,7 +196,6 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        // Ort-Eingabefeld
                         OutlinedTextField(
                             value = uiState.location,
                             onValueChange = viewModel::onLocationChange,
@@ -247,7 +237,6 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Suchen-Button
                         Button(
                             onClick = {
                                 keyboardController?.hide()
@@ -314,9 +303,9 @@ fun HomeScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(Category.entries.filter { it != Category.ALL }.let {
-                                listOf(Category.ALL) + it
-                            }) { category ->
+                            val categories = listOf(Category.ALL, Category.FLOHMARKT,
+                                Category.HAUSHALTSAUFLOESUNG, Category.TROEDELMARKT, Category.SONSTIGES)
+                            items(categories) { category ->
                                 FilterChip(
                                     selected = uiState.selectedCategory == category,
                                     onClick = { viewModel.onCategorySelected(category) },
@@ -345,7 +334,9 @@ fun HomeScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(DateFilter.entries) { dateFilter ->
+                            val dateFilters = listOf(DateFilter.ALL, DateFilter.TODAY,
+                                DateFilter.THIS_WEEK, DateFilter.THIS_MONTH)
+                            items(dateFilters) { dateFilter ->
                                 FilterChip(
                                     selected = uiState.selectedDateFilter == dateFilter,
                                     onClick = { viewModel.onDateFilterSelected(dateFilter) },
@@ -383,8 +374,9 @@ fun HomeScreen(
                     }
                 }
 
-                // ── Ergebnisse ───────────────────────────────────────────
-                if (!uiState.isLoading && uiState.hasSearched && uiState.entries.isEmpty() && uiState.errorMessage == null) {
+                // ── Keine Ergebnisse ─────────────────────────────────────
+                if (!uiState.isLoading && uiState.hasSearched &&
+                    uiState.entries.isEmpty() && uiState.errorMessage == null) {
                     item {
                         Box(
                             modifier = Modifier
@@ -396,10 +388,7 @@ fun HomeScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(
-                                    text = "🔍",
-                                    style = MaterialTheme.typography.displayMedium
-                                )
+                                Text(text = "🔍", style = MaterialTheme.typography.displayMedium)
                                 Text(
                                     text = "Keine Ergebnisse gefunden",
                                     style = MaterialTheme.typography.titleLarge,
@@ -430,10 +419,7 @@ fun HomeScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                Text(
-                                    text = "🛒",
-                                    style = MaterialTheme.typography.displayLarge
-                                )
+                                Text(text = "🛒", style = MaterialTheme.typography.displayLarge)
                                 Text(
                                     text = "Flohmärkte in deiner Nähe",
                                     style = MaterialTheme.typography.headlineSmall,
@@ -444,14 +430,14 @@ fun HomeScreen(
                                     text = "Gib deinen Ort ein oder nutze GPS (📍-Button unten rechts) um Flohmärkte, Haushaltsauflösungen und Trödelmärkte in deiner Nähe zu finden.",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
                     }
                 }
 
+                // ── GPS lädt ─────────────────────────────────────────────
                 if (uiState.isLocating) {
                     item {
                         Box(

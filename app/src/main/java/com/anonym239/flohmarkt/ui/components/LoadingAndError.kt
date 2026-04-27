@@ -160,6 +160,48 @@ fun ErrorView(
 }
 
 @Composable
+fun LottieLoadingView(modifier: Modifier = Modifier) {
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(com.anonym239.flohmarkt.R.raw.loading_animation)
+    )
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        if (composition != null) {
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.size(180.dp)
+            )
+        } else {
+            val infiniteTransition = rememberInfiniteTransition(label = "loading")
+            val rotation by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "rotation"
+            )
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(64.dp)
+                    .rotate(rotation),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 5.dp
+            )
+        }
+    }
+}
+
+@Composable
 fun EmptyStateView(
     message: String = "Keine Einträge gefunden.\nBitte starten Sie eine Suche.",
     modifier: Modifier = Modifier
